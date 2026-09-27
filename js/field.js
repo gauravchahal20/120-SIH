@@ -153,7 +153,7 @@ function fleet() {
   $("fc").innerHTML = html;
   schedule();
   $("fk").textContent =
-    `${WELLS.length} wells · ${tot.toFixed(0)} bbl/d · ${al} alarm${al == 1 ? "" : "s"} · ${FS.filter((f) => f.mode === "auto").length} adaptive`;
+    `FIELD ALARMS: ${al} · ${WELLS.length} wells · ${tot.toFixed(0)} bbl/d · ${FS.filter((f) => f.mode === "auto").length} adaptive`;
 }
 let tick = 0;
 setInterval(() => {

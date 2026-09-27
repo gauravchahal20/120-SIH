@@ -275,8 +275,15 @@ function alarms(o, p) {
         .join("")
     : `<tr><td></td><td colspan="2" class="muted">No active alarms</td></tr>`;
   const n = a.filter((r) => r[0] < 3).length;
-  $("alCount").textContent = n + " active";
-  $("sbAl").textContent = "Alarms: " + n + " active (" + WELLS[$("well").value].n + ")";
+  const wName = WELLS[$("well").value].n;
+  $("alCount").textContent = `${wName}: ${n} active`;
+  let fleetAl = 0;
+  FS.forEach((f, i) => {
+    const r = sim(params({ w: i, steam: 1800, pres: 70, soak: 3, stroke: 144, spm: 5, mode: f.mode }));
+    const fo = r.out[Math.min(f.d, DAYS)];
+    if (fo.flt || (fo.spm && fo.fill < 0.6) || (!fo.spm && f.d >= 3) || fo.T < 60) fleetAl++;
+  });
+  $("sbAl").textContent = `FIELD ALARMS: ${fleetAl} · SELECTED WELL (${wName}) ALARMS: ${n}`;
 }
 
 function curSoak() {
@@ -410,8 +417,13 @@ function cmp() {
     const v = ((c - a) / a) * 100;
     return (v > 0 ? "+" : "") + v.toFixed(0) + " %";
   };
+  const wName = WELLS[$("well").value].n;
+  const cycNum = $("cyc").value;
+  if ($("cmpScenario")) {
+    $("cmpScenario").textContent = `${wName} · Cyc ${cycNum} · Synthetic`;
+  }
   $("cmp").innerHTML =
-    `<thead><tr><th></th><th style="text-align:right">Current</th><th style="text-align:right">Optimised</th><th style="text-align:right">Δ</th></tr></thead><tbody>
+    `<thead><tr><th colspan="4" style="text-align:left;font-size:10px;color:var(--mut);font-weight:600;padding-bottom:4px;border-bottom:1px dashed var(--line)">CURRENT DEMO SCENARIO: Well ${wName} · Cycle ${cycNum} · Data: Synthetic</th></tr><tr><th></th><th style="text-align:right">Current</th><th style="text-align:right">Optimised</th><th style="text-align:right">Δ</th></tr></thead><tbody>
  <tr><td>Steam</td><td class="v">${fmt(1800)} t</td><td class="v">${fmt(b.s)} t</td><td></td></tr>
  <tr><td>Soak</td><td class="v">3 d</td><td class="v">${b.k} d</td><td></td></tr>
  <tr><td>Inj. pressure</td><td class="v">70</td><td class="v">${b.pr}</td><td></td></tr>
@@ -529,6 +541,69 @@ function xai(o, p) {
   if (!OPT) OPT = optimise();
   const b = OPT.best,
     r = [];
+  const wName = WELLS[$("well").value].n;
+
+  if ($("whyBox")) {
+    if (o.spm) {
+      const ao = sim({ ...p, mode: "auto" }).out[o.d],
+        rec = ao.spm || o.spm,
+        margin = o.fl - o.spm,
+        isFloat = o.flt,
+        isPound = !isFloat && o.fill < 0.6;
+
+      const tTrend = o.T < 70 ? "↓ (Cooled)" : "↓ (Cooling)";
+      const viscTrend = o.m > 2000 ? "↑ (Very thick)" : o.m > 500 ? "↑ (Elevated)" : "Moderate";
+      const dragTrend = o.muT > 800 ? "↑ (High shear)" : "Normal shear";
+      const marginHtml = isFloat
+        ? `<span class="a1" style="font-weight:600">${margin.toFixed(1)} SPM (Negative / Rod Float)</span>`
+        : `<span style="font-weight:600">+${margin.toFixed(1)} SPM (Safe)</span>`;
+
+      let actionText = "";
+      if (isFloat) {
+        actionText = `Reduce SPM from <b>${o.spm.toFixed(1)}</b> to <b>${rec.toFixed(1)} SPM</b> & slow downstroke (<b>${(100 / (o.vr || 1)).toFixed(0)}%</b>) to eliminate rod float and prevent rod buckling.`;
+      } else if (isPound) {
+        actionText = `Reduce SPM to <b>${rec.toFixed(1)} SPM</b> to match reservoir inflow (${o.q.toFixed(1)} bbl/d) and prevent fluid pound.`;
+      } else {
+        actionText = `Maintain safe closed-loop SPM (<b>${o.spm.toFixed(1)} SPM</b>, <b>${(100 / (o.vr || 1)).toFixed(0)}%</b> downstroke) to maximize oil recovery without rod float.`;
+      }
+
+      $("whyBox").innerHTML = `
+        <div style="font-weight:700; font-size:11px; margin-bottom:4px; color:var(--ink); border-bottom:1px solid var(--line); padding-bottom:2px; display:flex; justify-content:space-between;">
+          <span>WHY THIS RECOMMENDATION?</span>
+          <span class="mono" style="font-weight:400; color:var(--mut);">${wName} · Day ${o.d}</span>
+        </div>
+        <table style="width:100%; font-size:11px; margin:2px 0 4px; border-collapse:collapse;">
+          <tbody>
+            <tr><td class="muted">Reservoir temperature (TT-101)</td><td class="v num">${o.T.toFixed(1)} °C ${tTrend}</td></tr>
+            <tr><td class="muted">Oil viscosity (VI-101)</td><td class="v num">${fmt(o.m)} cP ${viscTrend}</td></tr>
+            <tr><td class="muted">Rod viscous drag (VI-002)</td><td class="v num">${fmt(o.muT)} cP avg ${dragTrend}</td></tr>
+            <tr><td class="muted">Rod-fall margin (Limit − SPM)</td><td class="v num">${marginHtml}</td></tr>
+            <tr><td class="muted">Operating SPM / Recommended</td><td class="v num">${o.spm.toFixed(1)} / <b>${rec.toFixed(1)} SPM</b></td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:4px; font-size:11px; line-height:1.3; border-top:1px dashed var(--line); padding-top:3px;">
+          <b>ACTION:</b> <span style="color:var(--ink);">${actionText}</span>
+        </div>`;
+    } else {
+      const isSoak = o.d < p.soak;
+      $("whyBox").innerHTML = `
+        <div style="font-weight:700; font-size:11px; margin-bottom:4px; color:var(--ink); border-bottom:1px solid var(--line); padding-bottom:2px; display:flex; justify-content:space-between;">
+          <span>WHY THIS RECOMMENDATION?</span>
+          <span class="mono" style="font-weight:400; color:var(--mut);">${wName} · Day ${o.d}</span>
+        </div>
+        <table style="width:100%; font-size:11px; margin:2px 0 4px; border-collapse:collapse;">
+          <tbody>
+            <tr><td class="muted">Well status</td><td class="v">${isSoak ? "Soak period (Shut in)" : "Shut in (Below cut-off)"}</td></tr>
+            <tr><td class="muted">Near-well temperature</td><td class="v num">${o.T.toFixed(1)} °C</td></tr>
+            <tr><td class="muted">Oil viscosity</td><td class="v num">${fmt(o.m)} cP</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:4px; font-size:11px; line-height:1.3; border-top:1px dashed var(--line); padding-top:3px;">
+          <b>ACTION:</b> <span style="color:var(--ink);">${isSoak ? `Allow heat to disperse into the reservoir (soak day ${o.d} of ${p.soak}). Start SRP on day ${p.soak}.` : `Near-well cooled below cut-off. Schedule mobile steam generator for next CSS cycle.`}</span>
+        </div>`;
+    }
+  }
+
   if (o.spm) {
     const ao = sim({ ...p, mode: "auto" }).out[o.d],
       rec = ao.spm || o.spm,

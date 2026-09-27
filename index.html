@@ -22,7 +22,7 @@
         THERMOLIFT<small>Baghewala Field · Well Surveillance &amp; CSS / SRP Optimisation</small>
       </div>
       <div class="right">
-        <span class="tagsim">SIM DATA</span><span id="clock">--:--:--</span
+        <span class="tagsim">SIMULATION MODE · Synthetic Demo Data</span><span id="clock">--:--:--</span
         ><span>Prod. Engg. Console</span>
       </div>
     </div>
@@ -188,6 +188,7 @@
         <section class="pnl">
           <h3>Operating advisory <span>model-based</span></h3>
           <div class="pb">
+            <div id="whyBox" style="margin-bottom: 8px; padding: 6px 8px; background: var(--panel2); border: 1px solid var(--line); font-size: 11px;"></div>
             <ul class="adv" id="xai"></ul>
             <div class="sp" style="margin-top: 8px">
               <label for="oilp">Oil price (economics)</label><output id="vOil"></output
@@ -197,7 +198,7 @@
           </div>
         </section>
         <section class="pnl">
-          <h3>Current practice vs optimised <span>sample well</span></h3>
+          <h3>Current practice vs optimised <span id="cmpScenario">sample well</span></h3>
           <div class="scroll"><table id="cmp" class="cmpt"></table></div>
         </section>
         <section class="pnl">
@@ -324,7 +325,8 @@
           <h3>Predicted vs actual cycle oil <span>bbl</span></h3>
           <svg id="pva" viewBox="0 0 400 300"></svg>
           <div class="pb small muted">
-            20% hold-out test set. Planned production model: XGBoost + LSTM with physics features.
+            <div><b>CURRENT PROTOTYPE:</b> Ridge Regression with nonlinear + interaction features (20% hold-out test set).</div>
+            <div style="margin-top: 3px"><b>PRODUCTION ROADMAP:</b> XGBoost / LSTM with physics features.</div>
           </div>
         </section>
       </div>
@@ -333,8 +335,8 @@
           <h3>Dynamometer-card classifier <span>k-NN, k = 5</span></h3>
           <div class="pb">
             <p class="muted" style="margin: 0 0 8px">
-              800 labelled synthetic cards in 4 classes (normal, fluid pound, rod float, gas
-              interference), each resampled to 64 load points; tested on 200 unseen cards.
+              <b>CURRENT PROTOTYPE:</b> k-NN (k = 5) on 800 labelled synthetic cards in 4 classes (normal, fluid pound, rod float, gas interference), resampled to 64 load points; tested on 200 unseen cards.<br />
+              <b style="display: inline-block; margin-top: 3px">PRODUCTION ROADMAP:</b> 1D-CNN / ResNet for real-time downhole dyno-card stream classification.
             </p>
             <div style="display: flex; gap: 6px; flex-wrap: wrap">
               <button class="act" id="dcTrain">Train classifier</button
