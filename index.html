@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ThermoLift – Baghewala Well Surveillance</title>
+    <meta
+      name="description"
+      content="Well-to-surface digital twin for CSS and sucker-rod pump optimisation of Baghewala heavy-oil wells (SIH 2026, PS 26120)."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="menubar">
+      <div class="brand">
+        THERMOLIFT<small>Baghewala Field · Well Surveillance &amp; CSS / SRP Optimisation</small>
+      </div>
+      <div class="right">
+        <span class="tagsim">SIM DATA</span><span id="clock">--:--:--</span
+        ><span>Prod. Engg. Console</span>
+      </div>
+    </div>
+    <div class="toolbar">
+      <nav id="tabs">
+        <button class="on" data-t="twin">Well Overview</button
+        ><button data-t="fleet">Field Overview</button
+        ><button data-t="ml">Models &amp; Data</button>
+      </nav>
+      <div class="tools">
+        <button id="tourBtn">Guided demo (2 min)</button><label for="well">Well</label
+        ><select id="well"></select
+        ><button class="act" id="optBtn">Run optimiser</button>
+      </div>
+    </div>
+
+    <main id="twin" class="tab on">
+      <div class="col">
+        <section class="pnl">
+          <h3>CSS cycle setpoints <span>CSS-100</span></h3>
+          <div class="pb">
+            <div class="sp">
+              <label for="steam">Steam volume</label><output id="vSteam"></output
+              ><input type="range" id="steam" min="400" max="3000" step="50" value="1800" />
+            </div>
+            <div class="sp">
+              <label for="pres">Injection pressure</label><output id="vPres"></output
+              ><input type="range" id="pres" min="40" max="110" step="5" value="70" />
+            </div>
+            <div class="sp">
+              <label for="soak">Soak time</label><output id="vSoak"></output
+              ><input type="range" id="soak" min="2" max="14" step="1" value="3" />
+            </div>
+            <div class="sp">
+              <label for="cyc">CSS cycle number</label><output id="vCyc"></output
+              ><input type="range" id="cyc" min="1" max="8" step="1" value="4" />
+            </div>
+            <div class="sp">
+              <label for="cut">Production cut-off</label><output id="vCut"></output
+              ><input type="range" id="cut" min="0.5" max="5" step="0.5" value="1.5" />
+            </div>
+          </div>
+        </section>
+        <section class="pnl">
+          <h3>SRP control <span>SC-301</span></h3>
+          <div class="pb">
+            <div class="sp">
+              <label for="mode">Control mode</label><span></span
+              ><select id="mode">
+                <option value="manual">Manual – fixed SPM (current practice)</option>
+                <option value="auto">Adaptive SPM – closed loop</option>
+              </select>
+            </div>
+            <div class="sp">
+              <label for="spm">Manual SPM</label><output id="vSpm"></output
+              ><input type="range" id="spm" min="2" max="10" step="0.5" value="5" />
+            </div>
+            <div class="sp">
+              <label for="stroke">Stroke length</label><output id="vStroke"></output
+              ><input type="range" id="stroke" min="64" max="168" step="4" value="144" />
+            </div>
+            <div class="sp">
+              <label for="heater">Downhole heater HTR-401 (40 kW)</label
+              ><input
+                type="checkbox"
+                id="heater"
+                style="width: 18px; height: 18px; accent-color: #3a3f45"
+              />
+            </div>
+          </div>
+        </section>
+        <section class="pnl">
+          <h3>Alarm summary <span id="alCount"></span></h3>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>P</th>
+                  <th>Tag</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody id="alerts"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="pnl">
+          <h3>Wellbore profile <span>Ramey</span></h3>
+          <svg
+            id="wbsvg"
+            viewBox="0 0 260 300"
+            role="img"
+            aria-label="Wellbore temperature profile"
+          ></svg>
+          <div class="pb small muted" id="wbnote"></div>
+        </section>
+      </div>
+
+      <div class="col">
+        <div class="two">
+          <section class="pnl">
+            <h3>Process graphic <span id="pgTag">BGW-07</span></h3>
+            <svg id="wellsvg" viewBox="0 0 420 300" role="img" aria-label="Well schematic"></svg>
+          </section>
+          <section class="pnl">
+            <h3>
+              Well faceplate <span>day <b id="dayLbl2" class="num"></b></span>
+            </h3>
+            <div class="scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tag</th>
+                    <th>Description</th>
+                    <th style="text-align: right">Value</th>
+                  </tr>
+                </thead>
+                <tbody id="kpis"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+        <section class="pnl">
+          <h3>
+            Cycle trend <span>day <b id="dayLbl" class="num"></b> of 120</span>
+          </h3>
+          <svg id="chMain" viewBox="0 0 800 230"></svg>
+          <div class="trendbar">
+            <button id="play">Play</button
+            ><input type="range" id="day" min="0" max="120" value="0" aria-label="Cycle day" />
+          </div>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Pen</th>
+                  <th>Tag</th>
+                  <th>Description</th>
+                  <th style="text-align: right">At cursor</th>
+                </tr>
+              </thead>
+              <tbody id="pens"></tbody>
+            </table>
+          </div>
+        </section>
+        <div class="two">
+          <section class="pnl">
+            <h3>Dynamometer cards <span>LC-301 · wave equation</span></h3>
+            <svg id="dyn" viewBox="0 0 400 220"></svg>
+            <div id="dynDiag" class="pb small"></div>
+          </section>
+          <section class="pnl">
+            <h3>Viscosity – temperature <span>Andrade fit</span></h3>
+            <svg id="visc" viewBox="0 0 400 220"></svg>
+            <div class="pb small muted">
+              ln μ = A + B/T, fitted to OIL's published 10,000–13,000 cP at 50 °C.
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="col rcol">
+        <section class="pnl">
+          <h3>Operating advisory <span>model-based</span></h3>
+          <div class="pb">
+            <ul class="adv" id="xai"></ul>
+            <div class="sp" style="margin-top: 8px">
+              <label for="oilp">Oil price (economics)</label><output id="vOil"></output
+              ><input type="range" id="oilp" min="3500" max="7500" step="250" value="5500" />
+            </div>
+            <button id="repBtn">Cycle report…</button>
+          </div>
+        </section>
+        <section class="pnl">
+          <h3>Current practice vs optimised <span>sample well</span></h3>
+          <div class="scroll"><table id="cmp" class="cmpt"></table></div>
+        </section>
+        <section class="pnl">
+          <h3>Optimiser search <span>net value, ₹ lakh / 120 d</span></h3>
+          <svg id="heat" viewBox="0 0 400 230"></svg>
+          <div class="pb small muted">
+            Steam volume × soak time. Best point outlined. Pressure and stroke are searched at each
+            cell.
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div id="fleet" class="tab">
+      <section class="pnl">
+        <h3>Field overview – Baghewala <span id="fk"></span></h3>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Well</th>
+                <th>Status</th>
+                <th style="text-align: right">Cycle day</th>
+                <th style="text-align: right">TT-101 °C</th>
+                <th style="text-align: right">Visc. cP</th>
+                <th style="text-align: right">Oil bbl/d</th>
+                <th style="text-align: right">SPM (limit)</th>
+                <th>Control</th>
+                <th>Cycle trend</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="fc"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="pnl">
+        <h3>
+          Steam generator schedule
+          <span>earliest-due-first with unit, injection and rig-move limits</span>
+        </h3>
+        <div class="pb">
+          <div
+            style="
+              display: flex;
+              gap: 14px;
+              flex-wrap: wrap;
+              align-items: center;
+              margin-bottom: 6px;
+            "
+          >
+            <label for="nsg" class="muted">Mobile steam units</label
+            ><select id="nsg">
+              <option>1</option>
+              <option selected>2</option>
+              <option>3</option>
+            </select>
+            <label for="srate" class="muted">Injection rate</label
+            ><select id="srate">
+              <option value="200">200 t/d</option>
+              <option value="250" selected>250 t/d</option>
+              <option value="300">300 t/d</option>
+            </select>
+            <label for="mv" class="muted">Rig move + hook-up</label
+            ><select id="mv">
+              <option value="1">1 d</option>
+              <option value="2" selected>2 d</option>
+              <option value="3">3 d</option>
+            </select>
+            <span class="mono small" id="schedKpi"></span>
+          </div>
+          <svg id="gantt" viewBox="0 0 900 150"></svg>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Well</th>
+                <th>Unit</th>
+                <th style="text-align: right">Due (day)</th>
+                <th style="text-align: right">Start</th>
+                <th style="text-align: right">Inject + soak</th>
+                <th style="text-align: right">Wait</th>
+                <th style="text-align: right">Steam</th>
+                <th style="text-align: right">Deferred oil</th>
+              </tr>
+            </thead>
+            <tbody id="sched"></tbody>
+          </table>
+        </div>
+      </section>
+      <p class="note">
+        Tags refresh every second from a simulated SCADA stream. In production they arrive over MQTT
+        / OPC-UA from the wellsite RTUs.
+      </p>
+    </div>
+
+    <div id="ml" class="tab">
+      <div class="two">
+        <section class="pnl">
+          <h3>Cycle-response model <span>ridge regression</span></h3>
+          <div class="pb">
+            <p class="muted" style="margin: 0 0 8px">
+              Learns cycle oil from past CSS cycles (cycle number, steam, pressure, soak, stroke,
+              well productivity). The sample set has 60 cycles from 5 wells. Load OIL's CSV to
+              retrain on real records.
+            </p>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap">
+              <button class="act" id="trainBtn">Train on sample set</button
+              ><label style="margin: 0"
+                ><input type="file" id="csv" accept=".csv" style="display: none" /><span
+                  >Load CSV…</span
+                ></label
+              ><button id="tplBtn">CSV format…</button>
+            </div>
+            <table style="margin-top: 8px">
+              <tbody id="mlStat"></tbody>
+            </table>
+            <table style="margin-top: 8px" id="coef"></table>
+          </div>
+        </section>
+        <section class="pnl">
+          <h3>Predicted vs actual cycle oil <span>bbl</span></h3>
+          <svg id="pva" viewBox="0 0 400 300"></svg>
+          <div class="pb small muted">
+            20% hold-out test set. Planned production model: XGBoost + LSTM with physics features.
+          </div>
+        </section>
+      </div>
+      <div class="two">
+        <section class="pnl">
+          <h3>Dynamometer-card classifier <span>k-NN, k = 5</span></h3>
+          <div class="pb">
+            <p class="muted" style="margin: 0 0 8px">
+              800 labelled synthetic cards in 4 classes (normal, fluid pound, rod float, gas
+              interference), each resampled to 64 load points; tested on 200 unseen cards.
+            </p>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap">
+              <button class="act" id="dcTrain">Train classifier</button
+              ><button id="dcTest">Diagnose random card</button>
+            </div>
+            <table style="margin-top: 8px">
+              <tbody id="dcStat"></tbody>
+            </table>
+            <div class="scroll"><table id="dcCM" style="margin-top: 8px"></table></div>
+          </div>
+        </section>
+        <section class="pnl">
+          <h3>Pump card under test <span>downhole, synthetic</span></h3>
+          <svg id="dcSvg" viewBox="0 0 400 230"></svg>
+          <div id="dcOut" class="pb"></div>
+        </section>
+      </div>
+      <section class="pnl">
+        <h3>Model validation checks <span id="vcSum"></span></h3>
+        <div class="pb" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+          <button class="act" id="vcRun">Run all checks</button
+          ><span class="muted small"
+            >Automated tests of physics, internal consistency and ML accuracy. They run each time
+            this tab opens.</span
+          >
+        </div>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Area</th>
+                <th>Check</th>
+                <th>Expected</th>
+                <th style="text-align: right">Result</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="vcTab"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="pnl">
+        <h3>Problem-statement data mapped to models</h3>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>OIL data source</th>
+                <th>Used by</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Production history, CSS cycle records, steam injection parameters</td>
+                <td>Cycle-response model, CSS optimiser</td>
+              </tr>
+              <tr>
+                <td>VFD and SRP operating data, dynamometer cards</td>
+                <td>Adaptive SPM / VFD control, card classifier</td>
+              </tr>
+              <tr>
+                <td>Rod failure and pump unsetting history</td>
+                <td>Failure-risk model (survival analysis)</td>
+              </tr>
+              <tr>
+                <td>Well completion, reservoir, fluid property and pressure data</td>
+                <td>Wellbore heat loss, viscosity–temperature fit</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="statusbar">
+      <span>Model: physics + ML surrogate v0.4</span
+      ><span>Data: synthetic, 8 wells (Baghewala field data not public)</span
+      ><span>Economics: oil ₹<span id="sbOil">5,500</span>/bbl · steam ₹2,600/t · power ₹8/kWh</span
+      ><span id="sbAl"></span>
+    </div>
+
+    <div id="tour" hidden role="dialog" aria-label="Guided demo">
+      <h4><span id="tourT"></span><span id="tourN" class="mono"></span></h4>
+      <p id="tourP"></p>
+      <div class="tb">
+        <button id="tourBack">Back</button><button id="tourNext" class="act">Next</button
+        ><button id="tourClose">Close</button>
+      </div>
+    </div>
+    <div id="modal" hidden>
+      <div id="mbox">
+        <h3
+          style="
+            margin: 0;
+            padding: 4px 8px;
+            background: var(--hdr);
+            border-bottom: 1px solid var(--line);
+            font: 600 12px var(--sans);
+          "
+        >
+          REPORT
+        </h3>
+        <div class="pb" id="mcont"></div>
+        <div class="noprint pb" style="display: flex; gap: 6px; border-top: 1px solid var(--line)">
+          <button id="mcopy">Copy text</button><button id="mprint">Print / PDF</button
+          ><button id="mclose" class="act">Close</button>
+        </div>
+      </div>
+    </div>
+    <script src="js/physics.js"></script>
+    <script src="js/simulation.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/well-view.js"></script>
+    <script src="js/field.js"></script>
+    <script src="js/models.js"></script>
+    <script src="js/tour.js"></script>
+  </body>
+</html>
