@@ -160,7 +160,6 @@ setInterval(() => {
   if (!$("fleet").classList.contains("on")) return;
   if (++tick % 5 == 0) {
     FS.forEach((f) => (f.d = (f.d + 1) % DAYS));
-    schedule();
   }
   fleet();
 }, 1000);

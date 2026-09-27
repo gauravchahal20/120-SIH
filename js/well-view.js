@@ -170,8 +170,7 @@ function wbDraw(o, p) {
 /** Tagged well faceplate. Abnormal values get the alarm colour. */
 function faceplate(o, p) {
   const wb = wbDraw(o, p);
-  const t = tagp(),
-    vr = Math.max(1, Math.min(2.2, Math.pow(o.m / 280, 0.18)));
+  const t = tagp();
   const rows = [
     [
       "TT-101",
@@ -206,7 +205,7 @@ function faceplate(o, p) {
     [
       "VFD-301",
       "Downstroke speed",
-      o.spm ? (p.mode === "auto" ? (100 / vr).toFixed(0) : "100") + " % of up" : "—",
+      o.spm ? (p.mode === "auto" ? (100 / (o.vr || 1)).toFixed(0) : "100") + " % of up" : "—",
       "",
     ],
     ["TT-001", "Wellhead fluid temperature", o.spm ? wb.whT.toFixed(1) + " °C" : "—", ""],
@@ -540,7 +539,7 @@ function xai(o, p) {
     ]);
     r.push([
       "VFD",
-      `Run the downstroke at <b class="num">${(100 / Math.max(1, Math.min(2.2, Math.pow(o.m / 280, 0.18)))).toFixed(0)} %</b> of upstroke speed to avoid impact loading.`,
+      `Run the downstroke at <b class="num">${(100 / (o.vr || 1)).toFixed(0)} %</b> of upstroke speed to avoid impact loading.`,
     ]);
   } else r.push(["Soak", "Well shut in while heat spreads into the reservoir."]);
   const left = S.out.findIndex((x, i) => i > o.d && x.T < 60);
@@ -573,23 +572,24 @@ function xai(o, p) {
   $("xai").innerHTML = r.map((x) => `<li><b>${x[0]}</b><span>${x[1]}</span></li>`).join("");
 }
 
-["steam", "pres", "soak", "cut", "mode", "spm", "stroke", "heater", "cyc"].forEach(
+["steam", "pres", "soak", "cut", "mode", "spm"].forEach(
   (i) => ($(i).oninput = () => draw())
+);
+["cyc", "stroke"].forEach(
+  (i) =>
+    ($(i).oninput = () => {
+      OPT = null;
+      draw();
+    })
 );
 $("heater").onchange = () => {
   OPT = null;
   draw();
 };
-$("cyc").addEventListener("input", () => {
-  OPT = null;
-});
 $("well").onchange = () => {
   OPT = null;
   draw();
 };
-$("stroke").addEventListener("input", () => {
-  OPT = null;
-});
 $("day").oninput = (e) => {
   day = +e.target.value;
   draw();
@@ -620,6 +620,7 @@ $("optBtn").onclick = () => {
 $("oilp").oninput = (e) => {
   OIL = +e.target.value;
   OPT = null;
+  for (let k in WOPT) delete WOPT[k];
   draw();
 };
 draw();

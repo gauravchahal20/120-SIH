@@ -464,9 +464,9 @@ $("csv").onchange = (e) => {
         return o;
       })
       .filter((r) => r.cycle_oil);
-    if (rows.length < 10) {
+    if (rows.length < 25) {
       $("mlStat").innerHTML =
-        '<tr><td class="a2" colspan="2">The file needs at least 10 rows and a cycle_oil column.</td></tr>';
+        '<tr><td class="a2" colspan="2">The file needs at least 25 rows and a cycle_oil column.</td></tr>';
       return;
     }
     train(rows);
