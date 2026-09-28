@@ -2,17 +2,12 @@
  * Field Overview: live status of all wells and the mobile steam-unit schedule.
  */
 // ---- field overview
-const FS = WELLS.map((w, i) => ({
-  d: [8, 25, 58, 47, 70, 40, 95, 62][i],
-  mode: i % 2 ? "manual" : "auto",
-}));
 /** Small temperature sparkline for the field grid. */
 function spark(r, d) {
   const x = (i) => 2 + (i * 96) / DAYS,
     y = (T) => 22 - ((T - 40) / 200) * 20;
   return `<svg viewBox="0 0 100 24" style="width:100px;height:24px"><polyline fill="none" stroke="${C.T}" stroke-width="1.2" points="${r.out.map((o) => x(o.d).toFixed(1) + "," + y(o.T).toFixed(1)).join(" ")}"/><line x1="${x(d)}" y1="0" x2="${x(d)}" y2="24" stroke="#1C2024"/></svg>`;
 }
-const WOPT = {};
 /** Cached per-well optimum used by the steam schedule. */
 function wellOpt(i) {
   if (!WOPT[i]) {

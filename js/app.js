@@ -25,6 +25,12 @@ const C = {
 
 WELLS.forEach((w, i) => $("well").add(new Option(w.n, i)));
 
+const FS = WELLS.map((w, i) => ({
+  d: [8, 25, 58, 47, 70, 40, 95, 62][i],
+  mode: i % 2 ? "manual" : "auto",
+}));
+const WOPT = {};
+
 /** Tag prefix for the selected well, e.g. "BGW07". */
 const tagp = () => WELLS[$("well").value].n.replace("-", "");
 

@@ -3,10 +3,18 @@
  */
 
 // ---- guided demo tour
-const TAB = (t) => document.querySelector(`[data-t=${t}]`).click();
+const TAB = (t) => {
+  const btn = document.querySelector(`[data-t=${t}]`);
+  if (btn) btn.click();
+};
 const setv = (id, v) => {
   const e = $(id);
-  e.value = v;
+  if (!e) return;
+  if (e.type === "checkbox") {
+    e.checked = Boolean(v);
+  } else {
+    e.value = v;
+  }
   e.dispatchEvent(new Event("input"));
   e.dispatchEvent(new Event("change"));
 };
@@ -41,7 +49,11 @@ const STEPS = [
     t: "2 · The well cools",
     sel: "#chMain",
     go() {
+      TAB("twin");
       clearInterval(tourTimer);
+      day = 0;
+      $("day").value = 0;
+      draw();
       tourTimer = setInterval(() => {
         if (day >= 65) {
           clearInterval(tourTimer);
@@ -58,6 +70,7 @@ const STEPS = [
     t: "3 · Rod float is detected",
     sel: "#alerts",
     go() {
+      TAB("twin");
       clearInterval(tourTimer);
       day = 65;
       $("day").value = 65;
@@ -68,13 +81,21 @@ const STEPS = [
   {
     t: "4 · The physics behind it",
     sel: "#dyn",
-    go() {},
+    go() {
+      TAB("twin");
+      clearInterval(tourTimer);
+      day = 65;
+      $("day").value = 65;
+      draw();
+    },
     p: "The dynamometer cards come from the Gibbs damped wave equation for the 1,100 m rod string. The surface load goes below zero on the downstroke (rods pushing up on the carrier bar) and peaks far above the rod allowable. The wellbore profile on the left shows why: the oil cools to about 30 °C near the surface.",
   },
   {
     t: "5 · Optimise steam and pump together",
     sel: "#cmp",
     go() {
+      TAB("twin");
+      clearInterval(tourTimer);
       $("optBtn").click();
     },
     p: "The optimiser picks steam volume, pressure, soak and stroke, and switches the pump to adaptive SPM. On this sample well: about +19 % oil per cycle, 25 % lower steam-oil ratio, and no rod-float or fluid-pound days.",
@@ -82,13 +103,22 @@ const STEPS = [
   {
     t: "6 · Every setpoint is explained",
     sel: "#xai",
-    go() {},
+    go() {
+      TAB("twin");
+      clearInterval(tourTimer);
+      if (!OPT) {
+        $("optBtn").click();
+      } else {
+        draw();
+      }
+    },
     p: "The operating advisory gives the reason for each recommendation, including whether the downhole heater pays for its power. An engineer approves before anything reaches the VFD.",
   },
   {
     t: "7 · Plan the whole field",
     sel: "#gantt",
     go() {
+      clearInterval(tourTimer);
       TAB("fleet");
       setv("nsg", "1");
       schedule();
@@ -99,7 +129,11 @@ const STEPS = [
     t: "8 · Verified, not just a demo",
     sel: "#vcTab",
     go() {
+      clearInterval(tourTimer);
       TAB("ml");
+      if (!MODEL) train(sample());
+      if (!DC) dcTrain();
+      runChecks();
     },
     p: "The models are checked automatically: physics, consistency, optimiser, scheduler and ML accuracy. Data here is synthetic, calibrated to Oil India’s published figures; the CSV loader retrains on real records.",
   },
@@ -107,6 +141,7 @@ const STEPS = [
 /** Shows step i of the guided demo and highlights its panel. */
 function tourShow(i) {
   TS = Math.max(0, Math.min(STEPS.length - 1, i));
+  clearInterval(tourTimer);
   document.querySelectorAll(".tourhl").forEach((e) => e.classList.remove("tourhl"));
   const s = STEPS[TS];
   s.go();
@@ -115,10 +150,10 @@ function tourShow(i) {
       const e = panel(s.sel);
       if (e) {
         e.classList.add("tourhl");
-        e.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "center" });
+        e.scrollIntoView({ behavior: typeof RM !== "undefined" && RM ? "auto" : "smooth", block: "center" });
       }
     },
-    TS === 7 ? 400 : 60
+    TS >= 6 ? 200 : 80
   );
   $("tourT").textContent = s.t;
   $("tourN").textContent = TS + 1 + " / " + STEPS.length;
@@ -144,3 +179,4 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowLeft" && TS > 0) tourShow(TS - 1);
 });
 if (location.hash === "#tour") setTimeout(() => tourShow(0), 600);
+
