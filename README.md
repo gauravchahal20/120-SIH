@@ -116,4 +116,4 @@ Planned stack: React + D3 dashboard, FastAPI backend, on-premise deployment at O
 
 ## Team
 
-`<Team Name>` · `<Team ID>` · `<College>`
+`<HELLO WORLD>` · `<188491>` · `<Chandigarh College of Engineering and Technology>`
